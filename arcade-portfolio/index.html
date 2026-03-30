@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arcade Portfolio</title>
+  <link rel="stylesheet" href="/src/styles/main.css" />
+</head>
+<body class="bg-black overflow-hidden">
+
+  <!-- ─── WebGL Canvas Layer (bottom) ─────────────────────────── -->
+  <canvas id="webgl-canvas"></canvas>
+
+  <!-- ─── CSS3D Renderer Layer (sits on top, pointer-events off) ─ -->
+  <div id="css3d-container"></div>
+
+  <!--
+  ═══════════════════════════════════════════════════════════════════
+  SCREEN CONTENT ARCHITECTURE
+  ═══════════════════════════════════════════════════════════════════
+
+  This div (#arcade-screen-content) is the root of the CSS3DObject.
+  It lives in DOM space but is transformed by Three.js to sit on the
+  arcade machine's monitor face in 3D world space.
+
+  ── LAYERING INSIDE THE SCREEN ──────────────────────────────────
+  (back → front, z-index order)
+
+    z-0  #screen-app          — your actual page content (sections)
+    z-5  #screen-focus-guard  — transparent overlay, BLOCKS clicks
+                                when NOT in focus mode, triggers
+                                the camera transition on click
+    z-10 .scanlines           — CRT scanline effect (pointer-events:none)
+
+  ── HOW TO ADD YOUR OWN SECTION ─────────────────────────────────
+  1. Create a <section id="section-projects"> inside #screen-app
+  2. Default display:none; show it via JS (see screenApp.js)
+  3. The nav bar calls showSection('projects') to swap views
+  4. Each section fills the app area: width:100%, height:100%
+
+  ── HOW TO INJECT A FRAMEWORK (React / Vue / Svelte) ────────────
+  Option A — Target mount (simplest):
+    In your framework entry:   mount('#screen-app')
+    In vite.config.js add:     input: { screen: 'src/screen-app/main.jsx' }
+    In this HTML replace the   <div id="screen-app"> contents with
+    just the framework root.   The CSS3DObject wrapper stays the same.
+
+  Option B — Web Component:
+    Define <arcade-screen> as a custom element that self-mounts.
+    Drop <arcade-screen></arcade-screen> inside #screen-app.
+    Zero coupling to the Three.js layer.
+
+  Option C — iframe (full isolation):
+    Replace #screen-app with:
+      <iframe src="/screen/index.html"
+              style="width:100%;height:100%;border:none;"></iframe>
+    The iframe gets its own JS context, styles, and router.
+    Lightbox overlays must use window.parent.document if they
+    need to escape the iframe boundary.
+
+  ── POINTER-EVENTS CONTRACT ─────────────────────────────────────
+  • NOT focused  → #screen-focus-guard is visible (pointer-events:all)
+                   It captures every click and fires focusScreen().
+                   The content beneath is NOT interactive.
+  • IS  focused  → guard gets display:none via JS.
+                   #screen-app receives all pointer events normally.
+                   nav links, carousel arrows, lightbox all work.
+  ═══════════════════════════════════════════════════════════════════
+  -->
+  <div id="arcade-screen-content">
+
+    <!-- ① CRT scanlines — always on top, never interactive -->
+    <div class="scanlines" aria-hidden="true"></div>
+
+    <!--
+      ② Focus Guard — transparent overlay that sits above the app
+         in non-focus mode. Clicking anywhere on the screen fires
+         window.__arcadeFocusRequest(), which main.js hooks into.
+         Removed from the stacking context once camera is focused.
+    -->
+    <div id="screen-focus-guard" aria-hidden="true"></div>
+
+    <!-- ③ App root — all your sections live here -->
+    <div id="screen-app">
+
+      <!-- ── Persistent nav bar ───────────────────────────────── -->
+      <nav id="screen-nav-bar">
+        <div class="screen-header">
+          <span class="pixel-dot"></span>
+          <span class="screen-title">JOJO.EXE</span>
+          <span class="pixel-dot"></span>
+        </div>
+        <ul class="nav-links">
+          <li>
+            <button class="nav-item" data-target="home">
+              <span class="nav-arrow">▶</span>
+              <span class="nav-label">HOME</span>
+              <span class="nav-tag">_index</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-item" data-target="about">
+              <span class="nav-arrow">▶</span>
+              <span class="nav-label">ABOUT</span>
+              <span class="nav-tag">_bio.txt</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-item" data-target="projects">
+              <span class="nav-arrow">▶</span>
+              <span class="nav-label">3D RENDERS</span>
+              <span class="nav-tag">_renders[]</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-item" data-target="projects2">
+              <span class="nav-arrow">▶</span>
+              <span class="nav-label">PROJECTS</span>
+              <span class="nav-tag">_project[]</span>
+            </button>
+          </li>
+        </ul>
+        <div class="screen-footer">
+          <span class="blink">EMAIL ME: lavinajohnver@gmail.com</span>
+          <span class="credit-count">EMAIL ME: lavinajohnver@gmail.com</span>
+        </div>
+      </nav>
+
+      <!-- ── Section: Home ────────────────────────────────────── -->
+      <section id="section-home" class="screen-section active">
+        <div class="section-inner home-inner">
+          <div class="home-glitch" data-text="JOHNVER LAVIÑA">JOHNVER LAVIÑA</div>
+          <p class="home-tagline">FRONT-END&nbsp;&nbsp;/&nbsp;&nbsp;3D GENERALIST&nbsp;&nbsp;/&nbsp;&nbsp;Creative</p>
+          <div class="home-meta">
+            <span class="home-status">● ONLINE</span>
+            <span class="home-ver">v2.0.1</span>
+          </div>
+          <p class="home-cta">Select a menu item above to explore ↑</p>
+        </div>
+      </section>
+
+      <!-- ── Section: About ───────────────────────────────────── -->
+      <section id="section-about" class="screen-section">
+        <div class="section-inner about-inner">
+          <h2 class="section-heading">ABOUT.TXT</h2>
+          <div class="about-body">
+            <p>Hello World! <br> My name is Johnver Laviña. I'm a developer with a passion for 3D graphics and games.</p>
+            <p>I specialize in blender and Three.js</p>
+            <button><a href="/public/JOHNVER_LAVIÑA_RESUME_2026.pdf" download="JOHNVER_LAVIÑA_RESUME_2026.pdf">DOWNLOAD RESUME↓</a></button>
+          </div>
+          <div class="about-stack">
+            <span class="stack-tag">Blender</span>
+            <span class="stack-tag">Three.js</span>
+            <span class="stack-tag">React</span>
+            <span class="stack-tag">GLSL</span>
+            <span class="stack-tag">Node</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section: 3D Renders (carousel + lightbox) ─────────── -->
+      <section id="section-projects" class="screen-section">
+        <div class="section-inner projects-inner">
+          <h2 class="section-heading">3D RENDERS</h2>
+
+          <!-- Carousel -->
+          <div class="carousel-root">
+            <button class="carousel-arrow left"  id="carousel-prev" aria-label="Previous">&#8592;</button>
+            <div class="carousel-track-wrap" id="carousel-track-wrap">
+              <ul class="carousel-track" id="carousel-track">
+                <!-- Cards injected by screenApp.js -->
+              </ul>
+            </div>
+            <button class="carousel-arrow right" id="carousel-next" aria-label="Next">&#8594;</button>
+          </div>
+
+          <p class="carousel-hint">Click any card to zoom</p>
+        </div>
+      </section>
+
+      <section id="section-projects2" class="screen-section">
+        <div class="section-inner projects-inner">
+          <h2 class="section-heading">PROJECTS</h2>
+          <p class="section-subheading">poop.</p>
+          <div class="project-grid">
+            <p style="text-align:center;color:#1aff6e88;">Coming soon…</p>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /screen-app -->
+  </div><!-- /arcade-screen-content -->
+
+  <!--
+    Lightbox — viewport overlay (not inside the CSS3DObject screen).
+    Keeps the same open/close functionality (Escape + click backdrop).
+  -->
+  <div id="screen-lightbox" aria-hidden="true" role="dialog">
+    <button id="lightbox-close" aria-label="Close lightbox">✕</button>
+    <button id="lightbox-prev" class="lightbox-nav" aria-label="Previous image">&#8592;</button>
+    <button id="lightbox-next" class="lightbox-nav" aria-label="Next image">&#8594;</button>
+    <div id="lightbox-img-wrap">
+      <img id="lightbox-img" src="" alt="" />
+    </div>
+    <div id="lightbox-caption"></div>
+  </div>
+
+  <!-- ─── Loading Overlay ───────────────────────────────────────── -->
+  <div id="loading-overlay">
+    <div class="loading-inner">
+      <div class="loading-logo">JOHNVER LAVIÑA<span> PORTFOLIO</span></div>
+      <div class="loading-bar-track">
+        <div id="loading-bar" class="loading-bar-fill"></div>
+      </div>
+      <p id="loading-status" class="loading-status">Initialising renderer...</p>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -114,7 +114,6 @@ function findScreenMesh(root) {
   })
   return found
 }
-
 // ─── Placeholder: procedural arcade cabinet ───────────────────────
 /**
  * A minimal stand-in so you can develop the full scene without a
@@ -159,14 +158,6 @@ function buildPlaceholderCabinet() {
   panel.rotation.x = -0.25
   panel.castShadow = true
   group.add(panel)
-
-  // Joystick stub
-  const joystick = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.025, 0.025, 0.12, 8),
-    new THREE.MeshStandardMaterial({ color: 0xff2244, roughness: 0.4 })
-  )
-  joystick.position.set(-0.18, 1.22, 0.06)
-  group.add(joystick)
 
   // Buttons
   const buttonColors = [0xff2244, 0x22aaff, 0xffcc00]

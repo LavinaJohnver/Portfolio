@@ -32,6 +32,8 @@ import {
 
 import { setupEnvironment }         from './scene/environment.js'
 import { loadArcadeModel }          from './scene/model.js'
+import { loadJoystickModel, createJoystickController } from './scene/joystick.js'
+import { loadButtonsModel, createButtonsController } from './scene/buttons.js'
 import {
   createCSS3DRenderer,
   createScreenObject,
@@ -42,7 +44,7 @@ import { createCameraTransition }   from './scene/cameraTransition.js'
 // ── UI ────────────────────────────────────────────────────────────
 import { setProgress, hide as hideLoader } from './components/loader.js'
 import { createFocusUI }                   from './components/focusUI.js'
-import { initScreenApp }                   from './components/screenApp.js'
+import { initScreenApp, showSection }      from './components/screenApp.js'
 
 // ─────────────────────────────────────────────────────────────────
 async function init() {
@@ -70,9 +72,22 @@ async function init() {
   // ── 5. Load arcade model ───────────────────────────────────────
   setProgress(0.35, 1)
 
-  const { screenMesh, joystickMesh } = await loadArcadeModel(scene, (progress) => {
+  const { screenMesh } = await loadArcadeModel(scene, (progress) => {
     setProgress(0.35 + progress * 0.35, 1)
   })
+  console.log('Loaded screenMesh', screenMesh)
+
+  // ── Load joystick model (separate asset) ─────────────────────────
+  const joystickMesh = await loadJoystickModel(scene, (progress) => {
+    setProgress(0.35 + progress * 0.35, 1)
+  })
+  console.log('Loaded joystickMesh', joystickMesh)
+
+  // ── Load buttons model (separate asset) ──────────────────────────
+  const { model: buttonsModel, buttons: buttonsArray } = await loadButtonsModel(scene, (progress) => {
+    setProgress(0.35 + progress * 0.35, 1)
+  })
+  console.log('Loaded buttons model', buttonsModel, 'buttons', buttonsArray.length)
 
   // ── 6. Screen bridge ───────────────────────────────────────────
   setProgress(0.75, 2)
@@ -109,6 +124,15 @@ async function init() {
     })
   }
 
+  // Joystick controller (keyboard + animation) is in its own module
+  const joystickController = createJoystickController(joystickMesh, {
+    onNavigate: navigateDirection,
+    isFocused: () => camTransition.isFocused,
+  })
+
+  // Buttons controller (random button press on 0-9 keyboard input)
+  const buttonsController = createButtonsController(buttonsArray)
+
   // ── 10. Init screen app (nav, carousel, lightbox) ───────────────
   initScreenApp()
 
@@ -116,13 +140,76 @@ async function init() {
   setupEmailCopy('.credit-count', 'lavinajohnver@gmail.com')
 
   // ── 11. Keyboard controls: navigation and confirm (space) ────
-  const keyState = {
-    forward: false, back: false, left: false, right: false,
+  const pages = [
+    { id: 'home', label: 'HOME' },
+    { id: 'about', label: 'ABOUT' },
+    { id: 'projects', label: '3D RENDERS' },
+    { id: 'projects2', label: 'PROJECTS' },
+  ]
+
+  let selectedIndex = 0
+  const navItems = Array.from(document.querySelectorAll('.nav-item'))
+  const navCooldownMs = 180
+  let lastNavAt = 0
+
+  function highlightNav(index) {
+    navItems.forEach((item, i) => {
+      item.classList.toggle('highlighted', i === index)
+    })
+  }
+
+  // Handle mouse clicks on tabs so highlight stays in sync with any UI action
+  navItems.forEach((item, i) => {
+    item.addEventListener('click', (event) => {
+      event.preventDefault()
+      setSelectedIndex(i)
+      showSection(pages[i].id)
+    })
+  })
+
+  function setSelectedIndex(index) {
+    const clamped = Math.max(0, Math.min(pages.length - 1, index))
+    if (clamped === selectedIndex) return
+    selectedIndex = clamped
+    showSection(pages[selectedIndex].id)
+    highlightNav(selectedIndex)
+
+    // Keep tab highlight in sync no matter whether keyboard or mouse triggered it.
+    const currentNavItem = navItems[selectedIndex]
+    if (currentNavItem) {
+      currentNavItem.focus({ preventScroll: true })
+    }
+  }
+
+  // Initialize first selection
+  showSection(pages[selectedIndex].id)
+  highlightNav(selectedIndex)
+
+  function navigateDirection(dir) {
+    if (!camTransition.isFocused) return
+    const now = performance.now()
+    if (now - lastNavAt < navCooldownMs) return
+
+    let delta = 0
+    if (dir === 'up') delta = -1
+    if (dir === 'down') delta = 1
+    if (dir === 'left') delta = -1
+    if (dir === 'right') delta = 1
+
+    // with horizontal nav we interpret left/right as wrapping in setSelectedIndex
+    if (dir === 'up' || dir === 'down') {
+      setSelectedIndex(selectedIndex + delta)
+    } else if (dir === 'left') {
+      setSelectedIndex(selectedIndex === 0 ? pages.length - 1 : selectedIndex - 1)
+    } else if (dir === 'right') {
+      setSelectedIndex(selectedIndex === pages.length - 1 ? 0 : selectedIndex + 1)
+    }
+
+    lastNavAt = now
   }
 
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return
-
     const key = e.key.toLowerCase()
 
     if (key === 'escape' && camTransition.isFocused) {
@@ -149,45 +236,11 @@ async function init() {
       return
     }
 
-    if (key === 'w' || key === 'arrowup') keyState.forward = true
-    if (key === 's' || key === 'arrowdown') keyState.back = true
-    if (key === 'a' || key === 'arrowleft') keyState.left = true
-    if (key === 'd' || key === 'arrowright') keyState.right = true
-
-    if (joystickMesh) {
-      const rot = THREE.MathUtils.degToRad(20)
-      let updated = false
-
-      if (key === 'd' || key === 'arrowright') {
-        joystickMesh.rotation.y += rot
-        updated = true
-      }
-      if (key === 'a' || key === 'arrowleft') {
-        joystickMesh.rotation.y -= rot
-        updated = true
-      }
-      if (key === 'w' || key === 'arrowup') {
-        joystickMesh.rotation.x -= rot
-        updated = true
-      }
-      if (key === 's' || key === 'arrowdown') {
-        joystickMesh.rotation.x += rot
-        updated = true
-      }
-
-      if (updated) {
-        joystickMesh.rotation.x = THREE.MathUtils.clamp(joystickMesh.rotation.x, -Math.PI / 2, Math.PI / 2)
-      }
-    }
+    // Movement keys (WASD / arrows) are handled in joystick controller module
   })
 
-  window.addEventListener('keyup', (e) => {
-    const key = e.key.toLowerCase()
-
-    if (key === 'w' || key === 'arrowup') keyState.forward = false
-    if (key === 's' || key === 'arrowdown') keyState.back = false
-    if (key === 'a' || key === 'arrowleft') keyState.left = false
-    if (key === 'd' || key === 'arrowright') keyState.right = false
+  window.addEventListener('keyup', () => {
+    // no-op: joystick module manages stick key state/animation
   })
 
   // ── 12. Cursor — pointer on hover (CSS driven) ─────────────────

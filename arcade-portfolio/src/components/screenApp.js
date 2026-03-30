@@ -199,17 +199,26 @@ function initLightbox() {
   // Keyboard nav in lightbox
   document.addEventListener('keydown', (e) => {
     if (!lightbox.classList.contains('open')) return
-    if (e.key === 'Escape') {
+    const key = e.key.toLowerCase()
+
+    if (key === 'escape') {
       e.stopImmediatePropagation()
       closeLightbox()
       return
     }
-    if (e.key === 'ArrowLeft') {
+
+    if (key === 'arrowleft' || key === 'a') {
       showLightboxAtIndex(currentLightboxIndex - 1)
       return
     }
-    if (e.key === 'ArrowRight') {
+
+    if (key === 'arrowright' || key === 'd') {
       showLightboxAtIndex(currentLightboxIndex + 1)
+      return
+    }
+
+    if (key === 'w' || key === 's') {
+      // optional: close lightbox with W/S? keep as noop for now
       return
     }
   }, true)   // capture phase → runs before main.js listener

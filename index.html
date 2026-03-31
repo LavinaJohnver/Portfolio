@@ -14,59 +14,6 @@
   <!-- ─── CSS3D Renderer Layer (sits on top, pointer-events off) ─ -->
   <div id="css3d-container"></div>
 
-  <!--
-  ═══════════════════════════════════════════════════════════════════
-  SCREEN CONTENT ARCHITECTURE
-  ═══════════════════════════════════════════════════════════════════
-
-  This div (#arcade-screen-content) is the root of the CSS3DObject.
-  It lives in DOM space but is transformed by Three.js to sit on the
-  arcade machine's monitor face in 3D world space.
-
-  ── LAYERING INSIDE THE SCREEN ──────────────────────────────────
-  (back → front, z-index order)
-
-    z-0  #screen-app          — your actual page content (sections)
-    z-5  #screen-focus-guard  — transparent overlay, BLOCKS clicks
-                                when NOT in focus mode, triggers
-                                the camera transition on click
-    z-10 .scanlines           — CRT scanline effect (pointer-events:none)
-
-  ── HOW TO ADD YOUR OWN SECTION ─────────────────────────────────
-  1. Create a <section id="section-projects"> inside #screen-app
-  2. Default display:none; show it via JS (see screenApp.js)
-  3. The nav bar calls showSection('projects') to swap views
-  4. Each section fills the app area: width:100%, height:100%
-
-  ── HOW TO INJECT A FRAMEWORK (React / Vue / Svelte) ────────────
-  Option A — Target mount (simplest):
-    In your framework entry:   mount('#screen-app')
-    In vite.config.js add:     input: { screen: 'src/screen-app/main.jsx' }
-    In this HTML replace the   <div id="screen-app"> contents with
-    just the framework root.   The CSS3DObject wrapper stays the same.
-
-  Option B — Web Component:
-    Define <arcade-screen> as a custom element that self-mounts.
-    Drop <arcade-screen></arcade-screen> inside #screen-app.
-    Zero coupling to the Three.js layer.
-
-  Option C — iframe (full isolation):
-    Replace #screen-app with:
-      <iframe src="/screen/index.html"
-              style="width:100%;height:100%;border:none;"></iframe>
-    The iframe gets its own JS context, styles, and router.
-    Lightbox overlays must use window.parent.document if they
-    need to escape the iframe boundary.
-
-  ── POINTER-EVENTS CONTRACT ─────────────────────────────────────
-  • NOT focused  → #screen-focus-guard is visible (pointer-events:all)
-                   It captures every click and fires focusScreen().
-                   The content beneath is NOT interactive.
-  • IS  focused  → guard gets display:none via JS.
-                   #screen-app receives all pointer events normally.
-                   nav links, carousel arrows, lightbox all work.
-  ═══════════════════════════════════════════════════════════════════
-  -->
   <div id="arcade-screen-content">
 
     <!-- ① CRT scanlines — always on top, never interactive -->
@@ -156,7 +103,7 @@
             <span class="stack-tag">GLSL</span>
             <span class="stack-tag">Node</span>
           </div>
-          <button class="outline-btn"><a href="/JOHNVER_LAVIÑA_RESUME_2026.pdf" download="JOHNVER_LAVIÑA_RESUME_2026.pdf">DOWNLOAD RESUME↓</a></button>
+          <button class="outline-btn"><a href="/JOHNVER_LAVINA_RESUME_2026.pdf" download="JOHNVER_LAVINA_RESUME_2026.pdf">DOWNLOAD RESUME↓</a></button>
         </div>
       </section>
 

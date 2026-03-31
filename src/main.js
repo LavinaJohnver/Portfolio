@@ -1,24 +1,3 @@
-/**
- * main.js
- * ─────────────────────────────────────────────────────────────────
- * Entry point for the Arcade Portfolio.
- *
- * Interaction flow:
- *   User clicks screen mesh
- *     → Raycaster detects hit
- *     → cameraTransition.focusScreen() [GSAP]
- *     → OrbitControls disabled, Exit button appears
- *
- *   User clicks Exit (or presses Escape)
- *     → cameraTransition.exitFocus() [GSAP]
- *     → OrbitControls re-enabled, Exit button hides
- *
- * Render pipeline (every frame):
- *   1. OrbitControls.update()       — damping (skipped while animating)
- *   2. WebGLRenderer.render()       — 3D scene → canvas
- *   3. CSS3DRenderer.render()       — DOM screen overlay
- */
-
 import * as THREE from 'three'
 
 // ── Scene modules ─────────────────────────────────────────────────
@@ -319,8 +298,10 @@ async function init() {
       if (obj.userData?.update) obj.userData.update(elapsed)
     })
 
-    renderer.render(scene, camera)
+    // Render the CSS screen first so the WebGL scene can properly occlude it
+    // when geometry is in front of the arcade screen in the 3D world.
     renderScreen(css3dRenderer, cssScene, camera)
+    renderer.render(scene, camera)
   }
 
   animate()

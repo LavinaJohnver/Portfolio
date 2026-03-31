@@ -145,7 +145,7 @@ function buildOccluder(css3dObject) {
 // ─────────────────────────────────────────────────────────────────
 /**
  * renderScreen(css3dRenderer, cssScene, camera)
- * Call every frame AFTER rendering the WebGL scene.
+ * Call every frame BEFORE rendering the WebGL scene.
  */
 export function renderScreen(css3dRenderer, cssScene, camera) {
   css3dRenderer.render(cssScene, camera)
